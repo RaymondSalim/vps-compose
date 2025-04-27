@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    env_file: ".env"
+    networks:
+      - mynetwork
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - mynetwork
+
+  postgres_backup_to_s3:
+    depends_on:
+      - database
+    build:
+      context: .
+      dockerfile: backup.Dockerfile
+    container_name: postgres_backup
+    env_file: ".env"
+    volumes:
+      - ./backup.sh:/usr/local/bin/backup.sh
+      - ./backups:/backups
+    networks:
+      - mynetwork
+    environment:
+      - PGPASSFILE=/root/.pgpass
+    command: >
+      sh -c "echo '${POSTGRES_HOST}:${POSTGRES_PORT}:${POSTGRES_DB}:${POSTGRES_USER}:${POSTGRES_PASSWORD}' > /root/.pgpass && 
+             chmod +x /usr/local/bin/backup.sh && 
+             echo 'PGPASSFILE=/root/.pgpass' > /etc/crontabs/root && 
+             echo 'POSTGRES_HOST=${POSTGRES_HOST}' >> /etc/crontabs/root && 
+             echo 'POSTGRES_PORT=${POSTGRES_PORT}' >> /etc/crontabs/root && 
+             echo 'POSTGRES_DB=${POSTGRES_DB}' >> /etc/crontabs/root && 
+             echo 'POSTGRES_USER=${POSTGRES_USER}' >> /etc/crontabs/root && 
+             echo 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}' >> /etc/crontabs/root && 
+             echo 'S3_BUCKET_NAME=${S3_BUCKET_NAME}' >> /etc/crontabs/root && 
+             echo 'AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}' >> /etc/crontabs/root && 
+             echo 'AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}' >> /etc/crontabs/root && 
+             echo 'AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}' >> /etc/crontabs/root && 
+             echo '*/1 * * * * /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
+             /usr/sbin/crond -f"
+    restart: always
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  postgres_data:
