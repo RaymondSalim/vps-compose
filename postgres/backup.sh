@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Set up logging
-LOG_FILE="/backups/backup.log"
-exec 1>>"$LOG_FILE" 2>&1
-
 # Log function
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"

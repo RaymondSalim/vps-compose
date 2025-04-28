@@ -6,25 +6,16 @@ services:
     container_name: postgres_db
     restart: always
     env_file: ".env"
+    ports:
+      - "5432:5432"
     networks:
-      - mynetwork
+      - postgres_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  nginx:
-    build:
-      context: .
-      dockerfile: nginx.Dockerfile
-    ports:
-      - "80:80"  # Required for Let's Encrypt challenge
-      - "5432:5432"
-    volumes:
-      - letsencrypt:/etc/letsencrypt
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - mynetwork
-    env_file: ".env"
-    restart: always
+      - ./ssl:/etc/postgresql/ssl
+    environment:
+      - POSTGRES_SSL_CERT_FILE=/etc/postgresql/ssl/server.crt
+      - POSTGRES_SSL_KEY_FILE=/etc/postgresql/ssl/server.key
 
   postgres_backup_to_s3:
     depends_on:
@@ -38,7 +29,7 @@ services:
       - ./backup.sh:/usr/local/bin/backup.sh
       - ./backups:/backups
     networks:
-      - mynetwork
+      - postgres_network
     environment:
       - PGPASSFILE=/root/.pgpass
     command: >
@@ -54,14 +45,13 @@ services:
              echo 'AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}' >> /etc/crontabs/root && 
              echo 'AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}' >> /etc/crontabs/root && 
              echo 'AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}' >> /etc/crontabs/root && 
-             echo '0 0 * * * /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
+             echo '${BACKUP_CRON} /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
              /usr/sbin/crond -f"
     restart: always
 
 networks:
-  mynetwork:
+  postgres_network:
     driver: bridge
 
 volumes:
-  postgres_data:
-  letsencrypt:
+  postgres_data: 
