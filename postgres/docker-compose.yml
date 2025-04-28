@@ -26,6 +26,7 @@ services:
     container_name: postgres_backup
     env_file: ".env"
     volumes:
+      - ./logrotate.conf:/etc/logrotate.d/backup:ro
       - ./backup.sh:/usr/local/bin/backup.sh
       - ./backups:/backups
     networks:
@@ -45,7 +46,9 @@ services:
              echo 'AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}' >> /etc/crontabs/root && 
              echo 'AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}' >> /etc/crontabs/root && 
              echo 'AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}' >> /etc/crontabs/root && 
-             echo '${BACKUP_CRON} /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
+             echo 'MAILTO="${CRON_MAILTO}"' >> /etc/crontabs/root && \
+             echo '${BACKUP_CRON} /usr/local/bin/backup.sh 2>&1 | tee -a /var/log/backup.log >> /proc/1/fd/1' >> /etc/crontabs/root &&
+             echo '0 0 * * * /usr/sbin/logrotate /etc/logrotate.d/backup' >> /etc/crontabs/root &&
              /usr/sbin/crond -f"
     restart: always
 

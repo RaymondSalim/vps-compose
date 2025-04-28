@@ -1,10 +1,12 @@
 FROM alpine:latest
 
 # Install required packages
-RUN apk add --no-cache postgresql15-client aws-cli cronie tzdata
+RUN apk add --no-cache postgresql15-client aws-cli cronie tzdata logrotate
 
-# Create backup directory
-RUN mkdir -p /backups
+# Create backup directory and log file
+RUN mkdir -p /backups && \
+    touch /var/log/backup.log && \
+    chmod 644 /var/log/backup.log
 
 # Create .pgpass in a location accessible by crond
 RUN touch /root/.pgpass && \
@@ -13,3 +15,5 @@ RUN touch /root/.pgpass && \
 
 # Set working directory
 WORKDIR /backups
+
+RUN chmod 644 /etc/logrotate.d/backup

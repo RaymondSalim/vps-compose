@@ -62,3 +62,6 @@ psql "sslmode=require host=localhost port=5432 dbname=your_db user=your_user"
 - Ensure proper firewall rules are in place
 - Regularly rotate your database credentials
 - Monitor backup success/failure 
+
+## TODO!
+Fix email system
