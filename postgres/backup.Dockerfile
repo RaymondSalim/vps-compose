@@ -16,4 +16,5 @@ RUN touch /root/.pgpass && \
 # Set working directory
 WORKDIR /backups
 
-RUN chmod 644 /etc/logrotate.d/backup
+RUN touch /etc/logrotate.d/backup && \
+    chmod 644 /etc/logrotate.d/backup
