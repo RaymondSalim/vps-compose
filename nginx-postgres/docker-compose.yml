@@ -53,7 +53,7 @@ services:
              echo 'AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}' >> /etc/crontabs/root && 
              echo 'AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}' >> /etc/crontabs/root && 
              echo 'AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}' >> /etc/crontabs/root && 
-             echo '*/1 * * * * /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
+             echo '0 0 * * * /usr/local/bin/backup.sh' >> /etc/crontabs/root && 
              /usr/sbin/crond -f"
     restart: always
 
