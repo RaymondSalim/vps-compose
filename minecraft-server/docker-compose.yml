@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: minecraft-server
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      MEMORY: "1G"
+      TYPE: "VANILLA"
+      VERSION: "1.21.5"
+      ONLINE_MODE: "TRUE"
+      MAX_PLAYERS: 4
+      ENABLE_WHITELIST: "true"
+
+#      LEVEL: "SampleWorld"
+    volumes:
+      - ./minecraft-data:/data
+      -
+#      - ./world/SampleWorld:/data/SampleWorld
+    restart: unless-stopped
