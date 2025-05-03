@@ -19,6 +19,6 @@ services:
 #      LEVEL: "SampleWorld"
     volumes:
       - ./minecraft-data:/data
-      - ./docker-compose.yml:/data/whitelist.json
+      - ./whitelist.json:/data/whitelist.json
 #      - ./world/SampleWorld:/data/SampleWorld
     restart: unless-stopped
