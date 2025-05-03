@@ -28,7 +28,7 @@ log "Backup directory checked/created"
 
 # Dump PostgreSQL database
 log "Starting database dump"
-if ! pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" "$POSTGRES_DB" > "$TEMP_DUMP"; then
+if ! pg_dump --column-inserts --create -h "$POSTGRES_HOST" -U "$POSTGRES_USER" "$POSTGRES_DB" > "$TEMP_DUMP"; then
     error "Database dump failed"
 fi
 log "Database dump completed successfully"
