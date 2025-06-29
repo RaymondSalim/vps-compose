@@ -20,5 +20,6 @@ services:
     volumes:
       - ./minecraft-data:/data
       - ./whitelist.json:/data/whitelist.json
+      - ./ops.json:/data/ops.json
 #      - ./world/SampleWorld:/data/SampleWorld
     restart: unless-stopped
