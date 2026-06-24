@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  cronicle:
+    build: .
+    container_name: cronicle
+    hostname: cronicle
+    ports:
+      - "3012:3012"
+    environment:
+      - CRONICLE_foreground=1
+      - CRONICLE_echo=1
+      - TZ=${TZ:-Asia/Jakarta}
+      - CRONICLE_NOTIFICATION_EMAIL=${CRONICLE_NOTIFICATION_EMAIL}
+      - CRONICLE_hostname=cronicle
+      - CRONICLE_master=1
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_TO=${SMTP_TO}
+      - HMS_BASE_URL=${HMS_BASE_URL}
+      - HMS_CRON_SECRET=${HMS_CRON_SECRET}
+    volumes:
+      - ./config:/opt/cronicle/config:ro
+      - ./data:/opt/cronicle/data
+      - ./logs:/opt/cronicle/logs
+      - ./logs/hms:/opt/cronicle/logs/hms
+    restart: unless-stopped
+    command: >
+      sh -c "
+        /opt/cronicle/bin/control.sh setup &&
+        /opt/cronicle/bin/control.sh start
+      "
