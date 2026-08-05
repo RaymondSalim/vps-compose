@@ -17,7 +17,7 @@ log() {
 log "Starting email reminder job..."
 
 # Make HTTP request to HMS API
-response=$(curl -vv -s -w "\n%{http_code}" \
+response=$(curl -s -w "\n%{http_code}" \
     -H "Authorization: Bearer $CRON_SECRET" \
     -H "Content-Type: application/json" \
     "$HMS_API_URL")

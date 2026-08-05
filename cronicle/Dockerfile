@@ -1,15 +1,11 @@
-FROM cronicle/edge:latest
+FROM cronicle/edge:v1.14.4
 
-# Create necessary directories
-RUN mkdir -p /opt/cronicle/logs/hms 
-RUN mkdir -p /opt/cronicle/jobs
-# RUN mkdir -p /opt/cronicle/scripts
+LABEL org.opencontainers.image.title="cronicle-micasa" \
+      org.opencontainers.image.description="Cronicle scheduler with HMS job scripts" \
+      org.opencontainers.image.source="https://github.com/RaymondSalim/vps-compose"
 
-# Copy job scripts to the container
-COPY jobs/ /opt/cronicle/jobs/
-# COPY scripts/ /opt/cronicle/scripts/
+RUN mkdir -p /opt/cronicle/logs/hms /opt/cronicle/jobs
 
-# Make scripts executable
-# RUN chmod +x /opt/cronicle/jobs/*.sh
-RUN find /opt/cronicle/jobs -type f -name "*.sh" -exec chmod +x {} +
-# RUN chmod +x /opt/cronicle/scripts/*.sh
+COPY --chown=root:root jobs/ /opt/cronicle/jobs/
+
+RUN find /opt/cronicle/jobs -type f -name "*.sh" -exec chmod 755 {} +

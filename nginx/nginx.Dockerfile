@@ -1,19 +1,15 @@
-FROM nginx:alpine
+FROM nginx:1.27.5-alpine3.21
 
-# Install certbot for Let's Encrypt
-RUN apk add --no-cache certbot
+LABEL org.opencontainers.image.title="nginx-vps-compose" \
+      org.opencontainers.image.source="https://github.com/RaymondSalim/vps-compose"
 
-# Create necessary directories
-RUN mkdir -p /etc/nginx/ssl /usr/share/nginx/html
+RUN apk add --no-cache certbot \
+    && mkdir -p /etc/nginx/ssl /usr/share/nginx/html
 
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Set working directory
 WORKDIR /usr/share/nginx/html
 
-# Expose ports
 EXPOSE 80 443
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]

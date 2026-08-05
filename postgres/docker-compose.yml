@@ -1,67 +1,92 @@
-version: '3.8'
-
 services:
   database:
-    image: postgres:15-alpine
+    image: postgres:15.18-alpine3.21
     container_name: postgres_db
-    tmpfs:
-      - /tmp:rw,noexec,nosuid
-    user: "postgres"
+    init: true
+    user: postgres
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
-    restart: always
-    env_file: ".env"
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - "5432:5432"
+      - "0.0.0.0:5432:5432"
     networks:
-      - postgres_network
+      - db_internal
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./ssl:/etc/postgresql/ssl
-    environment:
-      - POSTGRES_SSL_CERT_FILE=/etc/postgresql/ssl/server.crt
-      - POSTGRES_SSL_KEY_FILE=/etc/postgresql/ssl/server.key
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-768m}
+    cpus: ${POSTGRES_CPU_LIMIT:-1.0}
+    pids_limit: ${POSTGRES_PIDS_LIMIT:-200}
 
   postgres_backup_to_s3:
-    depends_on:
-      - database
     build:
       context: .
       dockerfile: backup.Dockerfile
     container_name: postgres_backup
-    env_file: ".env"
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_PORT: "5432"
     volumes:
       - ./logrotate.conf:/etc/logrotate.d/backup:ro
-      - ./backup.sh:/usr/local/bin/backup.sh
       - ./backups:/backups
+    secrets:
+      - pgpass
+      - aws_credentials
     networks:
-      - postgres_network
-    environment:
-      - PGPASSFILE=/root/.pgpass
-    command: >
-      sh -c "echo '${POSTGRES_HOST}:${POSTGRES_PORT}:${POSTGRES_DB}:${POSTGRES_USER}:${POSTGRES_PASSWORD}' > /root/.pgpass && 
-             chmod +x /usr/local/bin/backup.sh && 
-             echo 'PGPASSFILE=/root/.pgpass' > /etc/crontabs/root && 
-             echo 'POSTGRES_HOST=${POSTGRES_HOST}' >> /etc/crontabs/root && 
-             echo 'POSTGRES_PORT=${POSTGRES_PORT}' >> /etc/crontabs/root && 
-             echo 'POSTGRES_DB=${POSTGRES_DB}' >> /etc/crontabs/root && 
-             echo 'POSTGRES_USER=${POSTGRES_USER}' >> /etc/crontabs/root && 
-             echo 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}' >> /etc/crontabs/root && 
-             echo 'S3_BUCKET_NAME=${S3_BUCKET_NAME}' >> /etc/crontabs/root && 
-             echo 'AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}' >> /etc/crontabs/root && 
-             echo 'AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}' >> /etc/crontabs/root && 
-             echo 'AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}' >> /etc/crontabs/root && 
-             echo 'MAILTO="${CRON_MAILTO}"' >> /etc/crontabs/root && \
-             echo '${BACKUP_CRON} /usr/local/bin/backup.sh 2>&1 | tee -a /var/log/backup.log >> /proc/1/fd/1' >> /etc/crontabs/root &&
-             echo '0 0 * * * /usr/sbin/logrotate /etc/logrotate.d/backup' >> /etc/crontabs/root &&
-             /usr/sbin/crond -f"
-    restart: always
+      - db_internal
+      - backup_egress
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${BACKUP_MEMORY_LIMIT:-256m}
+    cpus: ${BACKUP_CPU_LIMIT:-0.5}
+    pids_limit: ${BACKUP_PIDS_LIMIT:-100}
 
 networks:
-  postgres_network:
+  db_internal:
+    internal: true
+  backup_egress:
     driver: bridge
 
 volumes:
-  postgres_data: 
+  postgres_data:
+
+secrets:
+  pgpass:
+    file: ${PGPASS_SECRET_FILE:-./secrets/pgpass}
+  aws_credentials:
+    file: ${AWS_CREDENTIALS_SECRET_FILE:-./secrets/aws_credentials}
