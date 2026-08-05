@@ -1,36 +1,61 @@
-version: '3.8'
-
 services:
   cronicle:
     build: .
     container_name: cronicle
     hostname: cronicle
+    init: true
     ports:
-      - "3012:3012"
+      - "127.0.0.1:3012:3012"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
     environment:
-      - CRONICLE_foreground=1
-      - CRONICLE_echo=1
-      - TZ=${TZ:-Asia/Jakarta}
-      - CRONICLE_NOTIFICATION_EMAIL=${CRONICLE_NOTIFICATION_EMAIL}
-      - CRONICLE_hostname=cronicle
-      - CRONICLE_master=1
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_SECURE=${SMTP_SECURE}
-      - SMTP_USERNAME=${SMTP_USERNAME}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM=${SMTP_FROM}
-      - SMTP_TO=${SMTP_TO}
-      - HMS_BASE_URL=${HMS_BASE_URL}
-      - HMS_CRON_SECRET=${HMS_CRON_SECRET}
+      CRONICLE_foreground: "1"
+      CRONICLE_echo: "1"
+      TZ: ${TZ:-Asia/Jakarta}
+      CRONICLE_NOTIFICATION_EMAIL: ${CRONICLE_NOTIFICATION_EMAIL:-}
+      CRONICLE_hostname: cronicle
+      CRONICLE_master: "1"
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      HMS_BASE_URL: ${HMS_BASE_URL:-}
+      HMS_CRON_SECRET: ${HMS_CRON_SECRET:-}
     volumes:
       - ./config:/opt/cronicle/config:ro
       - ./data:/opt/cronicle/data
       - ./logs:/opt/cronicle/logs
       - ./logs/hms:/opt/cronicle/logs/hms
+    networks:
+      - cronicle_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3012/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${CRONICLE_MEMORY_LIMIT:-512m}
+    cpus: ${CRONICLE_CPU_LIMIT:-1.0}
+    pids_limit: ${CRONICLE_PIDS_LIMIT:-256}
     command: >
       sh -c "
         /opt/cronicle/bin/control.sh setup &&
         /opt/cronicle/bin/control.sh start
       "
+
+networks:
+  cronicle_net:
+    driver: bridge

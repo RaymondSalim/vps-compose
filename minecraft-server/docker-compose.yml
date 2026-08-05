@@ -1,11 +1,15 @@
-version: '3.8'
-
 services:
   minecraft:
-    image: itzg/minecraft-server:latest
+    # Pin image tag; update deliberately. See https://github.com/itzg/docker-minecraft-server/tags
+    image: itzg/minecraft-server:java21
     container_name: minecraft-server
+    init: true
     ports:
       - "25565:25565"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       EULA: "TRUE"
       MEMORY: "1G"
@@ -15,11 +19,23 @@ services:
       MAX_PLAYERS: 4
       ENABLE_WHITELIST: "true"
       WHITELIST_FILE: "/data/whitelist.json"
-
-#      LEVEL: "SampleWorld"
+      ENABLE_RCON: "false"
     volumes:
       - ./minecraft-data:/data
-      - ./whitelist.json:/data/whitelist.json
-      - ./ops.json:/data/ops.json
-#      - ./world/SampleWorld:/data/SampleWorld
+      - ./whitelist.json:/data/whitelist.json:ro
+      - ./ops.json:/data/ops.json:ro
+    networks:
+      - minecraft_net
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${MINECRAFT_MEMORY_LIMIT:-1536m}
+    cpus: ${MINECRAFT_CPU_LIMIT:-1.5}
+    pids_limit: ${MINECRAFT_PIDS_LIMIT:-512}
+
+networks:
+  minecraft_net:
+    driver: bridge

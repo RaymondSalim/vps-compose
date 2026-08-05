@@ -1,1 +1,57 @@
+# Environment and secrets
 .env
+.env.*
+!.env.example
+!**/.env.example
+!**/env.example
+
+# Secret files for Docker Compose
+**/secrets/pgpass
+**/secrets/aws_credentials
+**/secrets/*.pem
+**/secrets/*.key
+
+# Runtime and persistent data
+**/backups/
+**/backups/**
+postgres/backups/
+cronicle/data/
+cronicle/logs/
+minecraft-server/minecraft-data/
+nginx/ssl/
+nginx/letsencrypt/
+
+# PostgreSQL SSL artifacts (not used in production; do not commit keys)
+postgres/ssl/
+
+# Database dumps and archives
+*.sql
+*.sql.gz
+*.dump
+*.bak
+
+# Caddy runtime data (managed on the VPS host)
+caddy/data/
+caddy/config/
+
+# Keys and certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Logs
+*.log
+logs/
+
+# OS and IDE
+.DS_Store
+.idea/
+*.iml
+
+# Local validation artifacts
+.trivy/
+gitleaks-report.json

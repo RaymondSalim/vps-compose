@@ -1,0 +1,9 @@
+.env
+.env.*
+.git
+.gitignore
+.DS_Store
+.idea/
+logs/
+data/
+config/

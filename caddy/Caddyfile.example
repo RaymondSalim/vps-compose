@@ -1,0 +1,45 @@
+# Example Caddy configuration for Cronicle reverse proxy
+# Install on the VPS host (not in Docker). Replace placeholders before use.
+#
+# Generate a bcrypt hash (do not commit the plaintext password):
+#   caddy hash-password --plaintext 'your-strong-password'
+#
+# Place this file at /etc/caddy/Caddyfile (or include from there).
+
+{
+	# Disable admin API on the public interface
+	admin off
+}
+
+cronicle.example.com {
+	encode gzip zstd
+
+	# Layered authentication: Caddy basic auth in front of Cronicle login
+	basicauth {
+		# username: hashed-password-from-caddy-hash-password
+		admin REPLACE_WITH_BCRYPT_HASH
+	}
+
+	reverse_proxy 127.0.0.1:3012 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/cronicle-access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		format json
+	}
+}

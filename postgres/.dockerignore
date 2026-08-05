@@ -1,0 +1,14 @@
+.env
+.env.*
+secrets/
+backups/
+ssl/
+*.sql
+*.sql.gz
+*.log
+.git
+.gitignore
+.DS_Store
+.idea/
+README.md
+secrets/README.md
