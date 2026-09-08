@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Monthly Billing Cron Job
-# This script generates monthly bills for rolling bookings
+# This script generates the next month's bill for every active rolling booking.
 
 set -e
 
@@ -25,7 +25,7 @@ response=$(curl -s -w "\n%{http_code}" \
 
 # Extract response body and status code
 http_code=$(echo "$response" | tail -n1)
-response_body=$(echo "$response" | head -n -1)
+response_body=$(echo "$response" | sed '$d')
 
 log "HTTP Status Code: $http_code"
 log "Response: $response_body"
@@ -37,4 +37,4 @@ if [ "$http_code" -eq 200 ]; then
 else
     log "Monthly billing job failed with HTTP status: $http_code"
     exit 1
-fi 
+fi

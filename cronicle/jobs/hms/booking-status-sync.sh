@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
-# Email Reminder Cron Job
-# This script sends payment reminder emails for bills coming due, within each
-# bill's configured reminder lead time. Gated server-side by the
-# MONTHLY_INVOICE_EMAIL_REMINDER_ENABLED setting.
+# Booking Status Sync Cron Job
+# This script syncs booking.status_id (and the room it occupies) from each
+# booking's start_date/end_date: PENDING -> ACTIVE -> COMPLETED. CANCELLED is
+# a terminal state and is never touched. Gated server-side by the
+# BOOKING_STATUS_SYNC_ENABLED setting.
 
 set -e
 
 # Configuration
-HMS_API_URL="${HMS_BASE_URL}/api/tasks/email/invoice-reminder"
+HMS_API_URL="${HMS_BASE_URL}/api/cron/booking-status-sync"
 CRON_SECRET="${HMS_CRON_SECRET}"
 
 # Log function
@@ -16,7 +17,7 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
 
-log "Starting email reminder job..."
+log "Starting booking status sync job..."
 
 # Make HTTP request to HMS API
 response=$(curl -s -w "\n%{http_code}" \
@@ -34,9 +35,9 @@ log "Response: $response_body"
 
 # Check if the request was successful
 if [ "$http_code" -eq 200 ]; then
-    log "Email reminder job completed successfully"
+    log "Booking status sync job completed successfully"
     exit 0
 else
-    log "Email reminder job failed with HTTP status: $http_code"
+    log "Booking status sync job failed with HTTP status: $http_code"
     exit 1
 fi

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
-# Email Reminder Cron Job
-# This script sends payment reminder emails for bills coming due, within each
-# bill's configured reminder lead time. Gated server-side by the
-# MONTHLY_INVOICE_EMAIL_REMINDER_ENABLED setting.
+# Late Fees Cron Job
+# This script scans overdue bills and applies an automated late fee (Denda
+# Keterlambatan) to each qualifying bill (idempotent per bill). Gated
+# server-side by the LATE_FEE_AUTOMATION_ENABLED setting.
 
 set -e
 
 # Configuration
-HMS_API_URL="${HMS_BASE_URL}/api/tasks/email/invoice-reminder"
+HMS_API_URL="${HMS_BASE_URL}/api/cron/late-fees"
 CRON_SECRET="${HMS_CRON_SECRET}"
 
 # Log function
@@ -16,7 +16,7 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
 
-log "Starting email reminder job..."
+log "Starting late fees job..."
 
 # Make HTTP request to HMS API
 response=$(curl -s -w "\n%{http_code}" \
@@ -34,9 +34,9 @@ log "Response: $response_body"
 
 # Check if the request was successful
 if [ "$http_code" -eq 200 ]; then
-    log "Email reminder job completed successfully"
+    log "Late fees job completed successfully"
     exit 0
 else
-    log "Email reminder job failed with HTTP status: $http_code"
+    log "Late fees job failed with HTTP status: $http_code"
     exit 1
 fi
