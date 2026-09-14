@@ -1,0 +1,3 @@
+paseo.example.com {
+	reverse_proxy paseo:6767
+}

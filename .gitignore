@@ -1,3 +1,5 @@
 .env
 paseo/paseo-home/
 paseo/workspace/
+caddy/data/
+caddy/config/
