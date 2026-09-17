@@ -13,8 +13,8 @@ services:
       - ./paseo-home:/home/paseo
       - ./workspace:/workspace
     networks:
-      - proxy
+      - paseo-network
 
 networks:
-  proxy:
-    external: true
+  paseo-network:
+    driver: bridge
