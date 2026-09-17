@@ -9,6 +9,7 @@ services:
     environment:
       PASEO_PASSWORD: "change-me"
       PASEO_HOSTNAMES: "paseo.example.com,.lan"
+      GIT_CONFIG_GLOBAL: /home/paseo/.gitconfig
     volumes:
       - ./paseo-home:/home/paseo
       - ./workspace:/workspace
