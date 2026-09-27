@@ -1,0 +1,17 @@
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_DATA_FILE: /data/mailpit.db
+      MP_MAX_MESSAGES: "500"
+      MP_SMTP_AUTH: "username:password"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "2525:1025"             # SMTP; Vercel dials this directly, Caddy not involved
+    volumes:
+      - mailpit-data:/data
+
+volumes:
+  mailpit-data:
