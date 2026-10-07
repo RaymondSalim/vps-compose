@@ -6,13 +6,16 @@ services:
     restart: unless-stopped
     ports:
       - "6767:6767"
-    environment:
-      PASEO_PASSWORD: "change-me"
-      PASEO_HOSTNAMES: "paseo.example.com,.lan"
-      GIT_CONFIG_GLOBAL: /home/paseo/.gitconfig
+    env_file:
+      - .env
     volumes:
       - ./paseo-home:/home/paseo
       - ./workspace:/workspace
+
+      # Shared agent instructions: same file linked to every agent's global path.
+      - ./AGENTS.md:/home/paseo/.claude/CLAUDE.md
+      - ./AGENTS.md:/home/paseo/.codex/AGENTS.md
+      - ./AGENTS.md:/home/paseo/.config/opencode/AGENTS.md
     networks:
       - paseo-network
 
