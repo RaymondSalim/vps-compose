@@ -1,0 +1,11 @@
+{
+  "awsAuthRefresh": "aws sso login --profile bedrock --no-browser --use-device-code",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "defaultMode": "default"
+  },
+  "effortLevel": "high"
+}
