@@ -11,7 +11,7 @@ RUN npm install -g \
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \ 
-        unzip less; \
+        unzip less python3; \
     install -d -m 755 /etc/apt/keyrings; \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg; \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg; \

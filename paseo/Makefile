@@ -1,4 +1,4 @@
-.PHONY: up update build down restart logs ps shell login-codex login-opencode login-gh
+.PHONY: up update build down restart logs ps shell login-codex login-opencode login-gh skills skills-list skills-update
 
 up:
 	docker compose up -d --build
@@ -33,3 +33,13 @@ login-opencode:
 
 login-gh:
 	docker exec -it --user paseo paseo gh auth login
+
+# Global agent skills (see skills/README.md).
+skills:
+	docker exec --user paseo paseo sh /opt/paseo-skills/install.sh
+
+skills-list:
+	docker exec --user paseo -e DISABLE_TELEMETRY=1 -e XDG_STATE_HOME=/home/paseo/.local/state paseo npx -y skills@1.7.1 list -g
+
+skills-update:
+	docker exec --user paseo -e DISABLE_TELEMETRY=1 -e XDG_STATE_HOME=/home/paseo/.local/state paseo npx -y skills@1.7.1 update -g -y
