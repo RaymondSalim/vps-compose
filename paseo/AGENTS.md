@@ -446,3 +446,26 @@ Refining an existing UI is not a redesign. Small CSS bugs and single-element fix
 If `frontend-orchestrator` is unavailable, apply these rules from general knowledge and say so.
 
 ---
+
+## Bedrock model IDs (project-specific)
+
+This deployment runs Claude Code against AWS Bedrock (`CLAUDE_CODE_USE_BEDROCK=1`). The
+account only allows cross-region inference profiles, so every model reference must use
+profile-form IDs (`us.anthropic.*` or `global.anthropic.*`, haiku needs the dated
+`us.anthropic.claude-haiku-4-5-20251001-v1:0`). On-demand or first-party forms
+(`anthropic.claude-opus-4-8`, `claude-haiku-4-5`) fail with "The provided model identifier
+is invalid" or "not available on your bedrock deployment".
+
+Model references live in three places and all three must stay in sync:
+
+1. `paseo/.env` (`ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU}_MODEL`,
+   optionally `ANTHROPIC_SMALL_FAST_MODEL`). Changing it requires container recreation
+   (`docker compose up -d`), not `make restart`.
+2. Paseo agent profiles in `~/.paseo/config.json` (`daemon.agentProfiles`): the model
+   paseo passes to `claude` as `--model`, which overrides the env defaults.
+3. Paseo metadata generation (`agents.metadataGeneration.providers`): paseo's internal
+   cheap calls (branch names, commit messages) default to the bare alias
+   `claude-haiku-4-5`, which is invalid on Bedrock; pin it to the haiku profile ID.
+
+Working reference: `aws bedrock list-inference-profiles --region us-west-2` lists the
+valid IDs for the account.

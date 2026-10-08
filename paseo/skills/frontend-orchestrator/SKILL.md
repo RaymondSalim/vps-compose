@@ -64,7 +64,7 @@ Follow `references/components.md` when a task needs a component that the project
 Written guidelines are not a substitute for looking at the result. After substantial UI changes:
 
 1. Run the project's own lint, typecheck, and tests.
-2. Render the page: use the project's Playwright/Storybook setup, or a browser tool if one is available. Capture desktop and mobile widths. If no rendering is possible, say so explicitly; do not claim visual verification.
+2. Render the page: use `agent-browser` (`agent-browser open <url> && agent-browser screenshot`), the project's Playwright/Storybook setup, or an available browser tool. Capture desktop and mobile widths. If no rendering is possible, say so explicitly; do not claim visual verification.
 3. Check keyboard navigation and visible focus, semantic structure and labels, contrast, responsive layout, loading/empty/error states, and `prefers-reduced-motion`.
 4. Run `web-design-guidelines` on the changed files.
 

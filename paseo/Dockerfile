@@ -5,13 +5,14 @@ USER root
 RUN npm install -g \
   @openai/codex \
   opencode-ai \
-  @anthropic-ai/claude-code
+  @anthropic-ai/claude-code \
+  agent-browser@latest
 
 
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \ 
-        unzip less python3; \
+        unzip less python3 chromium; \
     install -d -m 755 /etc/apt/keyrings; \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg; \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg; \

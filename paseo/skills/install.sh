@@ -29,6 +29,7 @@ add pbakaus/impeccable impeccable
 add Leonxlnx/taste-skill design-taste-frontend
 add nextlevelbuilder/ui-ux-pro-max-skill ui-ux-pro-max
 add anthropics/skills frontend-design
+add vercel-labs/agent-browser agent-browser
 add vercel-labs/agent-skills web-design-guidelines
 add shadcn/ui shadcn
 add emilkowalski/skills \

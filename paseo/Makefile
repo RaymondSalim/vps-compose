@@ -1,4 +1,4 @@
-.PHONY: up update build down restart logs ps shell login-codex login-opencode login-gh skills skills-list skills-update
+.PHONY: up update build down restart logs ps shell login-codex login-opencode login-gh login-aws skills skills-list skills-update
 
 up:
 	docker compose up -d --build
@@ -33,6 +33,9 @@ login-opencode:
 
 login-gh:
 	docker exec -it --user paseo paseo gh auth login
+
+login-aws:
+	docker exec -it --user paseo paseo aws sso login
 
 # Global agent skills (see skills/README.md).
 skills:
