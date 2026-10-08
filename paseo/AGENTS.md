@@ -433,3 +433,16 @@ A code comment should make sense to a reader who has no knowledge of the commit,
 
 ---
 
+## Frontend and UI/UX work
+
+This section applies only when a task builds, redesigns, refines, animates, or reviews something users see (pages, components, layout, styling, motion, design systems). Backend, API, database, infrastructure, CLI, and documentation tasks load no UI/UX skill.
+
+For qualifying tasks, load the `frontend-orchestrator` skill before any other design, animation, or UI-review skill. It classifies the task, inspects the project, and names the smallest skill set to load; load only those. In Codex, invoke it as `$frontend-orchestrator`; in OpenCode, through the `skill` tool.
+
+Precedence, highest first: explicit user requirements and agent-level instructions; the project's existing architecture, tokens, components, and design documents (`DESIGN.md`, `PRODUCT.md`, `components.json`); the project's own `AGENTS.md`/`CLAUDE.md`; the orchestrator's routing; generic advice inside individual skills. Never override a project convention to satisfy a skill's aesthetic preference; name the conflict instead.
+
+Refining an existing UI is not a redesign. Small CSS bugs and single-element fixes are fixed directly without creative skills. Use one creative authority per task. After substantial UI changes, verify the rendered result, not only the code.
+
+If `frontend-orchestrator` is unavailable, apply these rules from general knowledge and say so.
+
+---

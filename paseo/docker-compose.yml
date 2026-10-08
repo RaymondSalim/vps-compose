@@ -16,6 +16,11 @@ services:
       - ./AGENTS.md:/home/paseo/.claude/CLAUDE.md
       - ./AGENTS.md:/home/paseo/.codex/AGENTS.md
       - ./AGENTS.md:/home/paseo/.config/opencode/AGENTS.md
+
+      # Skill install script and repo-tracked skills, read by `make skills`.
+      # Mounted outside /home/paseo so Docker does not create root-owned
+      # directories inside the persisted home.
+      - ./skills:/opt/paseo-skills:ro
     networks:
       - paseo-network
 
