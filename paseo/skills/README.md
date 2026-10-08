@@ -22,6 +22,7 @@ Nothing is placed in `~/.codex/skills`: Codex scans both that directory and `~/.
 | `design-taste-frontend` | Leonxlnx/taste-skill | MIT | Landing pages, portfolios |
 | `ui-ux-pro-max` | nextlevelbuilder/ui-ux-pro-max-skill | MIT | Design-system search (styles, palettes, type); needs `python3` |
 | `frontend-design` | anthropics/skills | Apache-2.0 | Lightweight aesthetic direction |
+| `agent-browser` | vercel-labs/agent-browser | Apache-2.0 | Browser automation, snapshots, interaction, and visual verification; uses container Chromium |
 | `web-design-guidelines` | vercel-labs/agent-skills | MIT | Final UI review; fetches rules from vercel-labs/web-interface-guidelines `main` at run time |
 | `shadcn` | shadcn/ui | MIT | shadcn projects and registries |
 | `animate`, `improve-animations`, `review-animations`, `animation-vocabulary`, `break-ui`, `animate-expo` | emilkowalski/skills | MIT | Motion build/audit/review, edge-case stress testing, Expo motion |
