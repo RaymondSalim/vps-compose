@@ -447,6 +447,23 @@ If `frontend-orchestrator` is unavailable, apply these rules from general knowle
 
 ---
 
+Agents in this Paseo deployment can use the dedicated rootless Docker daemon
+at `unix:///run/agent-docker/docker.sock`. Use `paseo-test <compose-file>` for
+integration suites whose Compose file defines a `test` service. That helper
+creates a unique project name, propagates the test exit code, and cleans up
+only that project's disposable resources. Use service DNS for dependencies
+and source-copy builds; `/workspace` bind paths are not translated to the host.
+See `paseo/README.md` in the infrastructure repository for host setup and limits.
+
+The test daemon is shared and has a combined 1 CPU, 2 GiB RAM budget. Avoid
+fixed container names and global volumes. Never mount the production Docker
+socket, switch to the production daemon, run global prune, or delete resources
+belonging to other runs. Host provisioning is an administrator action, not a
+test dependency workaround. A failed test or resource limit must be reported,
+not bypassed by disabling isolation or weakening assertions.
+
+---
+
 ## Bedrock model IDs (project-specific)
 
 This deployment runs Claude Code against AWS Bedrock (`CLAUDE_CODE_USE_BEDROCK=1`). The

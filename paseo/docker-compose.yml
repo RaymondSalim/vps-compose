@@ -8,9 +8,26 @@ services:
       - "6767:6767"
     env_file:
       - .env
+    environment:
+      DOCKER_HOST: unix:///run/agent-docker/docker.sock
+      # Clear client overrides inherited from .env; this is a local Unix socket.
+      DOCKER_CONTEXT: ""
+      DOCKER_TLS: ""
+      DOCKER_TLS_VERIFY: ""
+      DOCKER_CERT_PATH: ""
+      DOCKER_API_VERSION: ""
     volumes:
       - ./paseo-home:/home/paseo
       - ./workspace:/workspace
+
+      # Created by make test-docker-setup on the host. Mount the directory so
+      # socket recreation on a daemon restart does not leave a stale bind.
+      - type: bind
+        source: /var/lib/paseo-test-api
+        target: /run/agent-docker
+        read_only: true
+        bind:
+          create_host_path: false
 
       # Shared agent instructions: same file linked to every agent's global path.
       - ./AGENTS.md:/home/paseo/.claude/CLAUDE.md
