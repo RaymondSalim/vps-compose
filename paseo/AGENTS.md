@@ -486,3 +486,53 @@ Model references live in three places and all three must stay in sync:
 
 Working reference: `aws bedrock list-inference-profiles --region us-west-2` lists the
 valid IDs for the account.
+
+---
+
+## Docker-based integration testing in this workspace
+
+The host provides a dedicated rootless Docker daemon
+(`unix:///run/agent-docker/docker.sock`; prefer the `paseo-test <compose-file>`
+helper, which pins the socket, assigns a unique project name, propagates the
+test exit code, and cleans up its own containers/networks). It has two hard
+constraints that make the usual "publish a port and connect to localhost"
+pattern impossible in this workspace:
+
+- **Published ports are unreachable from the workspace shell.** The rootless
+  daemon runs in a separate network namespace; `-p 5433:5432` binds in the
+  daemon's namespace, and nothing in the shell ever reaches it. Containers
+  must reach dependencies over the compose network by service DNS name
+  (`test-db:5432`), never via localhost. Source-copy builds must therefore
+  keep dependencies in-network too (see the compose note in the infrastructure
+  README about `/workspace` bind paths).
+- **Bind mounts of host paths do not work.** The daemon cannot see the
+  workspace's filesystem (verified: canary files in `/tmp`, `/home/...`, and
+  `/var/tmp` are invisible from containers; the daemon's own mount namespace
+  differs from the agent's). Transfer code via docker-native mechanisms
+  instead — `docker build` with the repo as build context is the simplest
+  (the build context ships over the socket), or `docker cp` into a container,
+  or bake into a volume/image and reference that.
+
+Recipe for running a test suite inside this daemon:
+
+1. Bake the workspace into an image:
+   `printf 'FROM <base-image>\nWORKDIR /app\nCOPY . .\n' > Dockerfile.tmp
+   && docker build -f Dockerfile.tmp -t work-code:latest . && rm Dockerfile.tmp`
+   (add a `.dockerignore`-style exclusion for `.git`, `.next`, caches if the
+   context is too large).
+2. Compose file with no published ports and no bind mounts: dependency
+   services (e.g. a database) on tmpfs volumes with healthchecks; the test
+   service uses the baked image, addresses dependencies by service name, and
+   sets any env the suite needs.
+3. Run via `paseo-test <compose-file>`. It aborts on first container exit and
+   reports the exit code; do not work around a failed test by disabling
+   isolation.
+4. In-container gotchas: binaries built/generated on the host may not match
+   the image's libc/openssl (regenerate in-container, e.g. `prisma
+   generate`); GUI-dependency launches (e.g. headless Chrome) need
+   `install --with-deps` for shared libraries and any binary-path env var
+   must be `export`ed (a bare `VAR=... &&` assignment does not persist to
+   the next command in the same `sh -c`).
+5. Clean up: remove the baked image (`docker rmi work-code:latest`) and any
+   scratch files when done; leave base images and other runs' resources
+   alone. The test daemon is shared and resource-capped (1 CPU / 2 GiB RAM).
