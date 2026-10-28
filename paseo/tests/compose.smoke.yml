@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: smoke
+      POSTGRES_USER: smoke
+      POSTGRES_PASSWORD: disposable-smoke-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smoke -d smoke"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    mem_limit: 512m
+
+  test:
+    image: postgres:17-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: smoke
+      PGUSER: smoke
+      PGPASSWORD: disposable-smoke-only
+    entrypoint: ["psql"]
+    command: ["-v", "ON_ERROR_STOP=1", "-c", "SELECT 1 AS smoke_test;"]
+    mem_limit: 128m
+
+volumes:
+  db-data:
