@@ -1,17 +1,28 @@
+FROM docker:29-cli AS docker-client
+
 FROM ghcr.io/getpaseo/paseo:latest
 
 USER root
 
+# Client tools connect to the dedicated host rootless daemon.
+COPY --from=docker-client /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-client /usr/local/libexec/docker/cli-plugins/ /usr/local/libexec/docker/cli-plugins/
+COPY scripts/run-compose-test.sh /usr/local/bin/paseo-test
+COPY tests/compose.smoke.yml /opt/paseo-tests/compose.smoke.yml
+RUN chmod 0755 /usr/local/bin/paseo-test \
+    && docker --version && docker compose version && docker buildx version
+
 RUN npm install -g \
   @openai/codex \
   opencode-ai \
-  @anthropic-ai/claude-code
+  @anthropic-ai/claude-code \
+  agent-browser@latest
 
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends \ 
-        unzip less; \
+    apt-get install -y --no-install-recommends \
+        unzip less python3 chromium; \
     install -d -m 755 /etc/apt/keyrings; \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg; \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg; \

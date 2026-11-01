@@ -433,3 +433,106 @@ A code comment should make sense to a reader who has no knowledge of the commit,
 
 ---
 
+## Frontend and UI/UX work
+
+This section applies only when a task builds, redesigns, refines, animates, or reviews something users see (pages, components, layout, styling, motion, design systems). Backend, API, database, infrastructure, CLI, and documentation tasks load no UI/UX skill.
+
+For qualifying tasks, load the `frontend-orchestrator` skill before any other design, animation, or UI-review skill. It classifies the task, inspects the project, and names the smallest skill set to load; load only those. In Codex, invoke it as `$frontend-orchestrator`; in OpenCode, through the `skill` tool.
+
+Precedence, highest first: explicit user requirements and agent-level instructions; the project's existing architecture, tokens, components, and design documents (`DESIGN.md`, `PRODUCT.md`, `components.json`); the project's own `AGENTS.md`/`CLAUDE.md`; the orchestrator's routing; generic advice inside individual skills. Never override a project convention to satisfy a skill's aesthetic preference; name the conflict instead.
+
+Refining an existing UI is not a redesign. Small CSS bugs and single-element fixes are fixed directly without creative skills. Use one creative authority per task. After substantial UI changes, verify the rendered result, not only the code.
+
+If `frontend-orchestrator` is unavailable, apply these rules from general knowledge and say so.
+
+---
+
+Agents in this Paseo deployment can use the dedicated rootless Docker daemon
+at `unix:///run/agent-docker/docker.sock`. Use `paseo-test <compose-file>` for
+integration suites whose Compose file defines a `test` service. That helper
+creates a unique project name, propagates the test exit code, and cleans up
+only that project's disposable resources. Use service DNS for dependencies
+and source-copy builds; `/workspace` bind paths are not translated to the host.
+See `paseo/README.md` in the infrastructure repository for host setup and limits.
+
+The test daemon is shared and has a combined 1 CPU, 2 GiB RAM budget. Avoid
+fixed container names and global volumes. Never mount the production Docker
+socket, switch to the production daemon, run global prune, or delete resources
+belonging to other runs. Host provisioning is an administrator action, not a
+test dependency workaround. A failed test or resource limit must be reported,
+not bypassed by disabling isolation or weakening assertions.
+
+---
+
+## Bedrock model IDs (project-specific)
+
+This deployment runs Claude Code against AWS Bedrock (`CLAUDE_CODE_USE_BEDROCK=1`). The
+account only allows cross-region inference profiles, so every model reference must use
+profile-form IDs (`us.anthropic.*` or `global.anthropic.*`, haiku needs the dated
+`us.anthropic.claude-haiku-4-5-20251001-v1:0`). On-demand or first-party forms
+(`anthropic.claude-opus-4-8`, `claude-haiku-4-5`) fail with "The provided model identifier
+is invalid" or "not available on your bedrock deployment".
+
+Model references live in three places and all three must stay in sync:
+
+1. `paseo/.env` (`ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU}_MODEL`,
+   optionally `ANTHROPIC_SMALL_FAST_MODEL`). Changing it requires container recreation
+   (`docker compose up -d`), not `make restart`.
+2. Paseo agent profiles in `~/.paseo/config.json` (`daemon.agentProfiles`): the model
+   paseo passes to `claude` as `--model`, which overrides the env defaults.
+3. Paseo metadata generation (`agents.metadataGeneration.providers`): paseo's internal
+   cheap calls (branch names, commit messages) default to the bare alias
+   `claude-haiku-4-5`, which is invalid on Bedrock; pin it to the haiku profile ID.
+
+Working reference: `aws bedrock list-inference-profiles --region us-west-2` lists the
+valid IDs for the account.
+
+---
+
+## Docker-based integration testing in this workspace
+
+The host provides a dedicated rootless Docker daemon
+(`unix:///run/agent-docker/docker.sock`; prefer the `paseo-test <compose-file>`
+helper, which pins the socket, assigns a unique project name, propagates the
+test exit code, and cleans up its own containers/networks). It has two hard
+constraints that make the usual "publish a port and connect to localhost"
+pattern impossible in this workspace:
+
+- **Published ports are unreachable from the workspace shell.** The rootless
+  daemon runs in a separate network namespace; `-p 5433:5432` binds in the
+  daemon's namespace, and nothing in the shell ever reaches it. Containers
+  must reach dependencies over the compose network by service DNS name
+  (`test-db:5432`), never via localhost. Source-copy builds must therefore
+  keep dependencies in-network too (see the compose note in the infrastructure
+  README about `/workspace` bind paths).
+- **Bind mounts of host paths do not work.** The daemon cannot see the
+  workspace's filesystem (verified: canary files in `/tmp`, `/home/...`, and
+  `/var/tmp` are invisible from containers; the daemon's own mount namespace
+  differs from the agent's). Transfer code via docker-native mechanisms
+  instead — `docker build` with the repo as build context is the simplest
+  (the build context ships over the socket), or `docker cp` into a container,
+  or bake into a volume/image and reference that.
+
+Recipe for running a test suite inside this daemon:
+
+1. Bake the workspace into an image:
+   `printf 'FROM <base-image>\nWORKDIR /app\nCOPY . .\n' > Dockerfile.tmp
+   && docker build -f Dockerfile.tmp -t work-code:latest . && rm Dockerfile.tmp`
+   (add a `.dockerignore`-style exclusion for `.git`, `.next`, caches if the
+   context is too large).
+2. Compose file with no published ports and no bind mounts: dependency
+   services (e.g. a database) on tmpfs volumes with healthchecks; the test
+   service uses the baked image, addresses dependencies by service name, and
+   sets any env the suite needs.
+3. Run via `paseo-test <compose-file>`. It aborts on first container exit and
+   reports the exit code; do not work around a failed test by disabling
+   isolation.
+4. In-container gotchas: binaries built/generated on the host may not match
+   the image's libc/openssl (regenerate in-container, e.g. `prisma
+   generate`); GUI-dependency launches (e.g. headless Chrome) need
+   `install --with-deps` for shared libraries and any binary-path env var
+   must be `export`ed (a bare `VAR=... &&` assignment does not persist to
+   the next command in the same `sh -c`).
+5. Clean up: remove the baked image (`docker rmi work-code:latest`) and any
+   scratch files when done; leave base images and other runs' resources
+   alone. The test daemon is shared and resource-capped (1 CPU / 2 GiB RAM).
