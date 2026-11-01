@@ -455,7 +455,7 @@ only that project's disposable resources. Use service DNS for dependencies
 and source-copy builds; `/workspace` bind paths are not translated to the host.
 See `paseo/README.md` in the infrastructure repository for host setup and limits.
 
-The test daemon is shared and has a combined 1 CPU, 2 GiB RAM budget. Avoid
+The test daemon is shared and has a combined 2 CPU, 6 GiB RAM budget. Avoid
 fixed container names and global volumes. Never mount the production Docker
 socket, switch to the production daemon, run global prune, or delete resources
 belonging to other runs. Host provisioning is an administrator action, not a
@@ -535,4 +535,4 @@ Recipe for running a test suite inside this daemon:
    the next command in the same `sh -c`).
 5. Clean up: remove the baked image (`docker rmi work-code:latest`) and any
    scratch files when done; leave base images and other runs' resources
-   alone. The test daemon is shared and resource-capped (1 CPU / 2 GiB RAM).
+   alone. The test daemon is shared and resource-capped (2 CPU / 6 GiB RAM).

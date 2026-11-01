@@ -15,7 +15,8 @@ case "$1" in
   info) printf '["name=%s"]\n' "$MOCK_SECURITY" ;;
   compose)
     case " $* " in
-      *' up '*) exit "$MOCK_UP_STATUS" ;;
+      *' config '*) printf '%s\n' "$MOCK_CONFIG" ;;
+      *' up '*) [[ -z ${MOCK_UP_SLEEP:-} ]] || exec sleep "$MOCK_UP_SLEEP"; exit "$MOCK_UP_STATUS" ;;
       *' down '*) exit "$MOCK_DOWN_STATUS" ;;
       *) exit 99 ;;
     esac ;;
@@ -24,11 +25,15 @@ esac
 EOF
 chmod +x "$test_tmp/bin/docker"
 
+within_budget='{"services":{"db":{"mem_limit":"536870912"},"test":{"deploy":{"resources":{"limits":{"memory":"134217728"}}}}}}'
+unbounded='{"services":{"db":{"mem_limit":"536870912"},"test":{}}}'
+over_budget='{"services":{"db":{"mem_limit":"4294967296"},"test":{"mem_limit":"134217728"}}}'
+
 run_case() {
-  local name=$1 security=$2 up=$3 down=$4 expected=$5
+  local name=$1 security=$2 up=$3 down=$4 expected=$5 config=${6:-$within_budget}
   local status=0
   PATH="$test_tmp/bin:$PATH" \
-    MOCK_LOG="$test_tmp/$name.log" MOCK_SECURITY="$security" \
+    MOCK_CONFIG="$config" MOCK_LOG="$test_tmp/$name.log" MOCK_SECURITY="$security" \
     MOCK_UP_STATUS="$up" MOCK_DOWN_STATUS="$down" \
     DOCKER_CONTEXT=production DOCKER_TLS=1 DOCKER_TLS_VERIFY=1 DOCKER_CERT_PATH=/invalid DOCKER_API_VERSION=invalid \
     bash "$script_dir/../scripts/run-compose-test.sh" "$script_dir/compose.smoke.yml" \
@@ -38,17 +43,17 @@ run_case() {
     printf '%s: expected status %s, got %s\n' "$name" "$expected" "$status" >&2
     exit 1
   fi
-  if [[ $security == rootless ]]; then
+  if [[ $security == rootless && $expected != 2 ]]; then
     grep -q ' up --build --abort-on-container-exit --exit-code-from test$' "$test_tmp/$name.log"
-    grep -q ' down --volumes --remove-orphans$' "$test_tmp/$name.log"
+    grep -q ' down --volumes --remove-orphans --rmi local$' "$test_tmp/$name.log"
     # Both operations must use the same generated, run-scoped project name.
     local up_project down_project
     up_project=$(awk '/ up / {for(i=1;i<NF;i++) if($i=="-p") print $(i+1)}' "$test_tmp/$name.log")
     down_project=$(awk '/ down / {for(i=1;i<NF;i++) if($i=="-p") print $(i+1)}' "$test_tmp/$name.log")
     [[ $up_project == test-* && $up_project == "$down_project" ]]
   else
-    if grep -q '^compose ' "$test_tmp/$name.log"; then
-      printf 'Refused daemon still received a Compose command\n' >&2
+    if grep -E '^compose .* (up|down) ' "$test_tmp/$name.log"; then
+      printf 'Refused run still received a Compose lifecycle command\n' >&2
       exit 1
     fi
   fi
@@ -60,3 +65,7 @@ run_case test-failure rootless 7 0 7
 run_case cleanup-failure rootless 0 9 1
 run_case both-fail rootless 7 9 7
 run_case refuse-rootful seccomp 0 0 1
+run_case unbounded-service rootless 0 0 2 "$unbounded"
+run_case over-budget rootless 0 0 2 "$over_budget"
+# A run that outlives the timeout is terminated with status 124 and still torn down.
+MOCK_UP_SLEEP=30 PASEO_TEST_TIMEOUT=1 run_case timeout rootless 0 0 124

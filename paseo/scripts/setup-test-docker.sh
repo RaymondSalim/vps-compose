@@ -85,10 +85,10 @@ chmod 0700 "$TEST_HOME"
 install -d -m 0755 "/etc/systemd/system/user-${test_uid}.slice.d"
 cat > "/etc/systemd/system/user-${test_uid}.slice.d/50-agent-test-limits.conf" <<'EOF'
 [Slice]
-CPUQuota=100%
+CPUQuota=200%
 CPUWeight=25
-MemoryHigh=1536M
-MemoryMax=2G
+MemoryHigh=4G
+MemoryMax=6G
 MemorySwapMax=0
 TasksMax=1024
 EOF

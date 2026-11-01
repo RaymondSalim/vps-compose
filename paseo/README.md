@@ -9,8 +9,8 @@ cgroup v2/systemd, and an existing block volume at `/mnt/blockvolume`.
 
 | Test resource | Limit shared by the daemon, builds and containers |
 | --- | --- |
-| CPU | One CPU equivalent (`CPUQuota=100%`) |
-| Memory | 1.5 GiB pressure threshold, 2 GiB hard maximum |
+| CPU | Two CPU equivalents (`CPUQuota=200%`) |
+| Memory | 4 GiB pressure threshold, 6 GiB hard maximum |
 | Swap | Zero |
 | Tasks/threads | 1,024 |
 | Storage | 20 GiB filesystem backed by `/mnt/blockvolume/paseo-test-storage/home.ext4` |
@@ -91,9 +91,19 @@ with a project `.dockerignore` excluding secrets and caches. Projects that need
 bind mounts require explicit path and permission configuration. Do not grant
 broad access to production directories to work around that mismatch.
 
+Every service in the Compose file must set `mem_limit` or
+`deploy.resources.limits.memory`, and the limits (times replicas) must total at most
+`PASEO_TEST_MEM_BUDGET_MB` (default 3072); otherwise `paseo-test` exits 2 before
+starting anything. A container over its own limit is OOM-killed and fails the run.
+Without that, a workload between `MemoryHigh` and `MemoryMax` is never killed. The
+kernel throttles the whole slice instead, including the loop and flush threads behind
+the storage image, which stalls the host on I/O. `PASEO_TEST_TIMEOUT` (default 900
+seconds) bounds `up`; expiry exits 124. Teardown is bounded to 180 seconds and runs
+`down --volumes --remove-orphans --rmi local`.
+
 Each invocation receives a unique Compose project name. Avoid fixed
 `container_name`, global resource names, external shared volumes and fixed
-published ports. Start with one suite at a time given the 2 GiB budget. The
+published ports. Start with one suite at a time given the shared 6 GiB maximum. The
 runner preserves test failures and cleans up on normal exit or SIGINT/SIGTERM.
 A crash, SIGKILL or unavailable daemon can leave resources; cleanup must target
 the printed project name. Never use global prune or remove every container.
