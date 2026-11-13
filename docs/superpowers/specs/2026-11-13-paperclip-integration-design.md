@@ -73,6 +73,7 @@ The host reaches the UI only through Caddy.
 | `paperclip/Dockerfile` | Thin derivative of the official Paperclip image adding AWS CLI v2 and the `paperclipai` CLI |
 | `paperclip/.dockerignore` | Keeps runtime data, backups, and secrets out of the build context |
 | `paperclip/docker-compose.yml` | Paperclip service, Postgres service, networks, and volumes |
+| `paperclip/docker-compose.local-trusted.yml` | Optional loopback sidecar variant for proxy-authenticated deployments |
 | `paperclip/Makefile` | Setup, lifecycle, authentication, bootstrap, and backup targets |
 | `paperclip/.env.example` | Documented environment template |
 | `paperclip/aws-config.example` | Bedrock SSO profile template matching Paseo |
@@ -141,6 +142,26 @@ excluded. The resulting image is tagged `paperclip-with-agents`.
 - `proxy`: external network shared with Caddy.
 - `paperclip-pgdata`: named volume outside the Paperclip data directory so
   the application's ownership repair never touches Postgres files.
+
+## Optional Proxy-Authenticated Mode
+
+The default stack uses `authenticated` + `public` and publishes no host ports.
+For deployments where a host-level proxy already enforces access control,
+`docker-compose.local-trusted.yml` provides an optional variant:
+
+- Sets `HOST=127.0.0.1` and `PAPERCLIP_BIND=loopback`, as required by
+  `local_trusted`.
+- Adds a small `alpine/socat` sidecar that shares Paperclip's network
+  namespace and forwards the container's `127.0.0.1:3100` to a listener on
+  `3101`.
+- Publishes only `127.0.0.1:3100` on the host, where a host-mode Caddy can
+  reach it.
+
+The override sets `PAPERCLIP_DEPLOYMENT_MODE=local_trusted` and
+`PAPERCLIP_DEPLOYMENT_EXPOSURE=private`. This disables Paperclip's own login
+and multi-user controls. The proxy becomes the only access control, so it must
+cover every path, including `/api/*`, WebSocket, and SSE endpoints. The host
+port must remain loopback-only. The default stack remains unchanged.
 
 ## Configuration and Secrets
 
@@ -269,9 +290,11 @@ match.
 | `make init` | Create `.env` from the template and generate secrets once |
 | `make aws-config` | Create `data/.aws/config` from the template if missing |
 | `make up` | Ensure the `proxy` network exists and start the stack |
+| `make up-local-trusted` | Start the loopback sidecar variant for proxy-authenticated mode |
 | `make build` | Build the derivative image with a base image pull |
 | `make update` | Rebuild with `--pull` and recreate the stack |
 | `make down` | Stop the stack, preserving volumes and data |
+| `make down-local-trusted` | Stop the proxy-authenticated stack, including the sidecar |
 | `make restart` | Restart the stack |
 | `make logs` | Follow logs |
 | `make ps` | Show stack status |
@@ -326,7 +349,8 @@ container data volume.
 
 - No production Docker socket is mounted. Agents cannot control Docker or
   reach other containers through the daemon.
-- Paperclip publishes no host ports. Only Caddy is exposed.
+- Paperclip publishes no host ports in the default stack. The optional
+  proxy-authenticated override publishes only the host loopback.
 - The database publishes no ports and is reachable only on the internal
   network.
 - The container starts as root only to repair volume ownership, then runs the
