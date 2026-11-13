@@ -1,3 +1,9 @@
 paseo.example.com {
 	reverse_proxy paseo:6767
 }
+
+paperclip.example.com {
+	reverse_proxy paperclip:3100 {
+		flush_interval -1
+	}
+}

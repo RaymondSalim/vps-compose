@@ -1,0 +1,64 @@
+services:
+  paperclip:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: paperclip-with-agents
+    environment:
+      DATABASE_URL: postgres://paperclip:smoke@db:5432/paperclip
+      HOST: 0.0.0.0
+      PORT: "3100"
+      PAPERCLIP_HOME: /paperclip
+      SERVE_UI: "true"
+      PAPERCLIP_DEPLOYMENT_MODE: authenticated
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: private
+      PAPERCLIP_PUBLIC_URL: http://localhost:3100
+      PAPERCLIP_AUTH_PUBLIC_BASE_URL: http://localhost:3100
+      PAPERCLIP_ALLOWED_HOSTNAMES: localhost,127.0.0.1,paperclip
+      PAPERCLIP_MIGRATION_AUTO_APPLY: "true"
+      BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      PAPERCLIP_AGENT_JWT_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      PAPERCLIP_TOOL_ACTION_SIGNING_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    volumes:
+      - paperclip-data:/paperclip
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/api/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+    networks:
+      - internal
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: paperclip
+      POSTGRES_PASSWORD: smoke
+      POSTGRES_DB: paperclip
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperclip -d paperclip"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks:
+      - internal
+
+  test:
+    image: paperclip-with-agents
+    depends_on:
+      paperclip:
+        condition: service_healthy
+    entrypoint: ["wget", "-qO-", "http://paperclip:3100/api/health"]
+    networks:
+      - internal
+
+volumes:
+  paperclip-data:
+
+networks:
+  internal:
+    driver: bridge
