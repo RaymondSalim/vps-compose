@@ -1,0 +1,53 @@
+services:
+  paperclip:
+    build: .
+    image: paperclip-with-agents
+    container_name: paperclip
+    restart: unless-stopped
+    pids_limit: 2048
+    stop_grace_period: 90s
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgres://paperclip:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in paperclip/.env}@db:5432/paperclip"
+      HOST: 0.0.0.0
+      PORT: "3100"
+      PAPERCLIP_HOME: /paperclip
+      SERVE_UI: "true"
+    volumes:
+      - ./data:/paperclip
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+      - proxy
+
+  db:
+    image: postgres:17-alpine
+    container_name: paperclip-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: paperclip
+      POSTGRES_DB: paperclip
+    volumes:
+      - paperclip-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperclip -d paperclip"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - internal
+
+volumes:
+  paperclip-pgdata:
+
+networks:
+  internal:
+    driver: bridge
+  proxy:
+    external: true
