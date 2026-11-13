@@ -1,4 +1,4 @@
-.PHONY: init up build update down restart logs ps shell aws-config aws-login login-codex login-opencode login-gh bootstrap doctor agent-versions backup-db
+.PHONY: init up up-local-trusted build update down down-local-trusted restart logs ps shell aws-config aws-login login-codex login-opencode login-gh bootstrap doctor agent-versions backup-db
 
 init:
 	@if [ ! -f .env ]; then \
@@ -19,6 +19,10 @@ up:
 	@docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
 	docker compose up -d --build
 
+up-local-trusted:
+	@docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
+	docker compose -f docker-compose.yml -f docker-compose.local-trusted.yml up -d --build
+
 build:
 	docker compose build --pull
 
@@ -28,6 +32,9 @@ update:
 
 down:
 	docker compose down
+
+down-local-trusted:
+	docker compose -f docker-compose.yml -f docker-compose.local-trusted.yml down
 
 restart:
 	docker compose restart

@@ -121,6 +121,45 @@ resolve relative to `paperclip/`. Do not use a Portainer web-editor stack for
 this layout, because its relative paths resolve under Portainer's own stack
 directory. Portainer does not supply the agent CLIs or Bedrock credentials.
 
+## Proxy-authenticated mode
+
+If Caddy already enforces access control, you can disable Paperclip's own
+login and avoid a second login. Paperclip's built-in multi-user controls are
+also disabled, so the proxy becomes the only access control.
+
+The local-trusted override sets `PAPERCLIP_DEPLOYMENT_MODE=local_trusted` and
+`PAPERCLIP_DEPLOYMENT_EXPOSURE=private`. Start it with:
+
+```sh
+make up-local-trusted
+```
+
+The override binds Paperclip to the container loopback, runs a small
+`alpine/socat` sidecar in the same network namespace, and publishes only
+`127.0.0.1:3100` on the host. Use a host-mode Caddy upstream:
+
+```caddyfile
+paperclip.example.com {
+	reverse_proxy 127.0.0.1:3100 {
+		flush_interval -1
+	}
+}
+```
+
+Do not run `make bootstrap` in this mode. The UI opens as the implicit trusted
+board operator.
+
+The proxy must cover every path, including `/api/*`, WebSocket, and SSE
+endpoints. The published port must stay on `127.0.0.1`, never `0.0.0.0`. Any
+process or container that can reach the sidecar's port bypasses the proxy gate
+and gets full instance-admin access.
+
+Stop this variant with:
+
+```sh
+make down-local-trusted
+```
+
 ## Operations
 
 | Command | Purpose |
@@ -128,9 +167,11 @@ directory. Portainer does not supply the agent CLIs or Bedrock credentials.
 | `make init` | Create `.env` and generate the required secrets on first run |
 | `make aws-config` | Create the SSO profile template in `data/.aws/config` |
 | `make up` | Create the `proxy` network if needed and start the stack |
+| `make up-local-trusted` | Start the loopback sidecar variant for proxy-authenticated mode |
 | `make build` | Build the image with a base image pull |
 | `make update` | Rebuild with `--pull` and recreate the stack |
 | `make down` | Stop the stack, preserving data |
+| `make down-local-trusted` | Stop the proxy-authenticated stack, including the sidecar |
 | `make restart` | Restart the stack |
 | `make logs` | Follow logs |
 | `make ps` | Show status |
@@ -218,7 +259,9 @@ runner.
 ## Security
 
 - No Docker socket is mounted. Agents cannot control Docker.
-- No Paperclip or Postgres ports are published. Caddy is the only ingress.
+- No Paperclip or Postgres ports are published in the default stack. The
+  optional proxy-authenticated override publishes Paperclip on the host
+  loopback only.
 - The Postgres container is reachable only on the internal network.
 - `.env` and `data/` contain credentials. Restrict their permissions.
 - The bootstrap invite is one-time. Use it immediately after first start.
